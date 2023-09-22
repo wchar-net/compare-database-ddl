@@ -14,3 +14,11 @@ spring.datasource.hikari.slave  副数据源
 CompareDatabaseDDLApplicationTests ->  class
 contextLoads                       ->  method
 ```
+
+### No.3 查看结果
+```shell
+运行完成后刷新 IDEA 目录结构 Reload from Disk
+默认会生成在 ./compare 目录下
+./compare/table  副数据源缺少得表
+./compare/column 副数据源表缺少得 列、主键、唯一约束
+```
