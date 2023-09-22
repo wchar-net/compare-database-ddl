@@ -1,14 +1,15 @@
 package net.wchar.compare.database.ddl;
 
 import lombok.extern.slf4j.Slf4j;
-import net.wchar.compare.database.ddl.service.CompareService;
+import net.wchar.compare.database.ddl.service.DataCompareService;
 import net.wchar.compare.database.ddl.util.FileUtil;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
+import javax.annotation.Resource;
 import javax.sql.DataSource;
 import java.io.File;
 import java.io.IOException;
@@ -25,13 +26,14 @@ import java.util.stream.Collectors;
 @SpringBootTest
 class CompareDatabaseDDLApplicationTests {
 
-    @Autowired
-    private CompareService compareService;
+    @Resource
+    @Qualifier("oracleCompareServiceImpl")
+    private DataCompareService dataCompareService;
 
-    @Autowired
+    @Resource
     private DataSource masterDataSource;
 
-    @Autowired
+    @Resource
     private DataSource slaveDataSource;
 
     private List<String> masterTables;
@@ -50,44 +52,33 @@ class CompareDatabaseDDLApplicationTests {
 
     @Test
     void contextLoads() throws SQLException, IOException {
-        //No.1 比较表
+        //No.1 验证
+        checkDataSource();
+        //No.2 比较表
         compareTables();
-        //No.2 比较列信息
+        //No.3 比较列信息
         compareTableColumn();
+        log.info("比较完成 (●'◡'●)");
     }
 
-    private void compareTableColumn() throws SQLException, IOException {
-        //交集
-        masterTables = compareService.getAllTable(masterDataSource, tablePrefix);
-        slaveTables = compareService.getAllTable(slaveDataSource, tablePrefix);
-        List<String> intersection = masterTables.stream().filter(item -> slaveTables.contains(item)).collect(Collectors.toList());
-        for (String tableName : intersection) {
-            List<String> columnWrapperList = compareService.getColumnWrapper(masterDataSource, slaveDataSource, tableName);
-            log.info("列比较: {}", tableName);
-            //追加到文件
-            String dirPath = baseOutDir + "/column/";
-            if (!new File(dirPath).exists()) {
-                new File(dirPath).mkdirs();
-            }
-            String filePath = dirPath + tableName + ".sql";
-            if (!CollectionUtils.isEmpty(columnWrapperList)) {
-                FileUtil.appendListToFile(columnWrapperList, filePath);
-            }
+    private void checkDataSource() throws SQLException {
+        if (!dataCompareService.getDBType(masterDataSource).compare(dataCompareService.getDBType(slaveDataSource))) {
+            throw new IllegalArgumentException("必须是相同得数据库才能比较!");
         }
     }
 
     private void compareTables() throws SQLException, IOException {
-        masterTables = compareService.getAllTable(masterDataSource, tablePrefix);
-        slaveTables = compareService.getAllTable(slaveDataSource, tablePrefix);
+        masterTables = dataCompareService.getAllTable(masterDataSource, tablePrefix);
+        slaveTables = dataCompareService.getAllTable(slaveDataSource, tablePrefix);
         //差集
         masterTables.removeAll(slaveTables);
         for (String masterTable : masterTables) {
             //建表语句
-            String createTableSql = compareService.getCreateTableSql(masterTable, masterDataSource);
+            String createTableSql = dataCompareService.getCreateTableSql(masterTable, masterDataSource);
             //表注释
-            String tableDescSql = compareService.getTableDesc(masterTable, masterDataSource);
+            String tableDescSql = dataCompareService.getTableDesc(masterTable, masterDataSource);
             //列信息
-            List<String> columnDescWrapperList = compareService.getColumnDesc(masterTable, masterDataSource);
+            List<String> columnDescWrapperList = dataCompareService.getColumnDesc(masterTable, masterDataSource);
             log.info("表比较: {}", masterTable);
             //追加到文件
             String dirPath = baseOutDir + "/table/";
@@ -102,6 +93,26 @@ class CompareDatabaseDDLApplicationTests {
                 FileUtil.appendListToFile(Arrays.asList(tableDescSql), filePath);
             }
             FileUtil.appendListToFile(columnDescWrapperList, filePath);
+        }
+    }
+
+    private void compareTableColumn() throws SQLException, IOException {
+        //交集
+        masterTables = dataCompareService.getAllTable(masterDataSource, tablePrefix);
+        slaveTables = dataCompareService.getAllTable(slaveDataSource, tablePrefix);
+        List<String> intersection = masterTables.stream().filter(item -> slaveTables.contains(item)).collect(Collectors.toList());
+        for (String tableName : intersection) {
+            List<String> columnWrapperList = dataCompareService.getColumnWrapper(masterDataSource, slaveDataSource, tableName);
+            log.info("列比较: {}", tableName);
+            //追加到文件
+            String dirPath = baseOutDir + "/column/";
+            if (!new File(dirPath).exists()) {
+                new File(dirPath).mkdirs();
+            }
+            String filePath = dirPath + tableName + ".sql";
+            if (!CollectionUtils.isEmpty(columnWrapperList)) {
+                FileUtil.appendListToFile(columnWrapperList, filePath);
+            }
         }
     }
 

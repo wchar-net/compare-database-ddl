@@ -9,6 +9,10 @@ import org.springframework.context.annotation.Configuration;
 
 import javax.sql.DataSource;
 
+/**
+ * 主数据源
+ * @author Elijah
+ */
 @Configuration
 public class MasterDataSourceConfig {
 

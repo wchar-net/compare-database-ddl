@@ -3,6 +3,10 @@ package net.wchar.compare.database.ddl.wrapper;
 import lombok.*;
 import lombok.experimental.Accessors;
 
+/**
+ * 列描述
+ * @author Elijah
+ */
 @Data
 @Builder
 @ToString

@@ -1,10 +1,10 @@
 package net.wchar.compare.database.ddl.service.impl;
 
 import lombok.extern.log4j.Log4j2;
-import net.wchar.compare.database.ddl.dao.DataBaseCompareDao;
+import net.wchar.compare.database.ddl.dao.DataCompareDao;
 import net.wchar.compare.database.ddl.enums.DBType;
 import net.wchar.compare.database.ddl.exception.NotSupportDBException;
-import net.wchar.compare.database.ddl.service.CompareService;
+import net.wchar.compare.database.ddl.service.OracleCompareService;
 import net.wchar.compare.database.ddl.wrapper.ColumnDescWrapper;
 import net.wchar.compare.database.ddl.wrapper.ColumnWrapper;
 import net.wchar.compare.database.ddl.wrapper.TablePrimaryWrapper;
@@ -22,33 +22,40 @@ import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * oracle 比较 Service 实现
+ *
+ * @author Elijah
+ */
 @Log4j2
-@Service
-public class CompareServiceImpl implements CompareService {
+@Service("oracleCompareServiceImpl")
+public class OracleCompareServiceImpl implements OracleCompareService {
 
+    @Resource
+    @Qualifier("oracleCompareDaoImpl")
+    private DataCompareDao oracleCompareDaoImpl;
 
     @Override
     public List<String> getAllTable(DataSource dataSource, String likeRight) throws SQLException {
-        return getDBType(dataSource).getAllTable(dataSource, likeRight);
+        return oracleCompareDaoImpl.getAllTable(dataSource, likeRight);
     }
 
     @Override
     public String getCreateTableSql(String tableName, DataSource dataSource) throws SQLException, IOException {
-        return getDBType(dataSource).getCreateTableSql(tableName, dataSource);
+        return oracleCompareDaoImpl.getCreateTableSql(tableName, dataSource);
     }
 
     @Override
     public String getTableDesc(String tableName, DataSource dataSource) throws SQLException {
-        return getDBType(dataSource).getTableDesc(tableName, dataSource);
+        return oracleCompareDaoImpl.getTableDesc(tableName, dataSource);
     }
 
     @Override
     public List<String> getColumnWrapper(DataSource masterDataSource, DataSource slaveDataSource, String tableName) throws SQLException, IOException {
-        List<ColumnWrapper> masterColumnWrapper = getDBType(masterDataSource).getColumnWrapper(masterDataSource, tableName);
-        List<ColumnWrapper> slaveColumnWrapper = getDBType(slaveDataSource).getColumnWrapper(slaveDataSource, tableName);
+        List<ColumnWrapper> masterColumnWrapper = oracleCompareDaoImpl.getColumnWrapper(masterDataSource, tableName);
+        List<ColumnWrapper> slaveColumnWrapper = oracleCompareDaoImpl.getColumnWrapper(slaveDataSource, tableName);
         List<String> result = new ArrayList<>();
         //No.1 列名称差集
         List<ColumnWrapper> difference = differenceColumnWrapper(masterColumnWrapper, slaveColumnWrapper);
@@ -69,7 +76,7 @@ public class CompareServiceImpl implements CompareService {
     }
 
     private String builderColumnDesc(ColumnWrapper finedColumnWrapper, String tableName, DataSource masterDataSource) throws SQLException {
-        List<ColumnDescWrapper> columnDescWrapperList = getDBType(masterDataSource).getColumnDesc(tableName, masterDataSource);
+        List<ColumnDescWrapper> columnDescWrapperList = oracleCompareDaoImpl.getColumnDesc(tableName, masterDataSource);
         String columnName = finedColumnWrapper.getColumnName();
         for (ColumnDescWrapper columnDescWrapper : columnDescWrapperList) {
             if (!columnName.equalsIgnoreCase(columnDescWrapper.getColumnName())) {
@@ -100,7 +107,8 @@ public class CompareServiceImpl implements CompareService {
             sb.append(masterColumnInfoBo.getDataType());
         } else if (masterColumnInfoBo.getDataType().equalsIgnoreCase("number")) {
             if (StringUtils.hasText(masterColumnInfoBo.getDataScale())) {
-                sb.append(masterColumnInfoBo.getDataType()).append("(").append(masterColumnInfoBo.getDataLength()).append(",").append(masterColumnInfoBo.getDataScale()).append(")");
+                sb.append(masterColumnInfoBo.getDataType()).append("(").append(masterColumnInfoBo.getDataLength())
+                        .append(",").append(masterColumnInfoBo.getDataScale()).append(")");
             } else {
                 sb.append(masterColumnInfoBo.getDataType());
             }
@@ -154,16 +162,16 @@ public class CompareServiceImpl implements CompareService {
         return null;
     }
 
-    private List<String> builderColumnPrimary(String tableName, DataSource masterDataSource, DataSource slaveDataSource) throws SQLException, IOException {
+    private List<String> builderColumnPrimary(String tableName, DataSource masterDataSource, DataSource slaveDataSource) throws SQLException {
         List<String> result = new ArrayList<>();
-        List<TablePrimaryWrapper> masterTablePrimaryList = getDBType(masterDataSource).getTablePrimaryList(tableName, masterDataSource);
-        List<TablePrimaryWrapper> slaveTablePrimaryList = getDBType(masterDataSource).getTablePrimaryList(tableName, slaveDataSource);
+        List<TablePrimaryWrapper> masterTablePrimaryList = oracleCompareDaoImpl.getTablePrimaryList(tableName, masterDataSource);
+        List<TablePrimaryWrapper> slaveTablePrimaryList = oracleCompareDaoImpl.getTablePrimaryList(tableName, slaveDataSource);
         if (CollectionUtils.isEmpty(masterTablePrimaryList)) {
             return result;
         }
         String slaveDataCreateTableSql;
         try {
-            slaveDataCreateTableSql = getDBType(slaveDataSource).getCreateTableSql(tableName, slaveDataSource);
+            slaveDataCreateTableSql = oracleCompareDaoImpl.getCreateTableSql(tableName, slaveDataSource);
         } catch (SQLException | IOException e) {
             //slave表不存在
             return result;
@@ -256,7 +264,7 @@ public class CompareServiceImpl implements CompareService {
 
     @Override
     public List<String> getColumnDesc(String tableName, DataSource dataSource) throws SQLException {
-        List<ColumnDescWrapper> columnDescWrapperList = getDBType(dataSource).getColumnDesc(tableName, dataSource);
+        List<ColumnDescWrapper> columnDescWrapperList = oracleCompareDaoImpl.getColumnDesc(tableName, dataSource);
         List<String> result = new ArrayList<>();
         for (ColumnDescWrapper columnDescWrapper : columnDescWrapperList) {
             if (StringUtils.hasText(columnDescWrapper.getColumnDesc())) {
@@ -268,27 +276,15 @@ public class CompareServiceImpl implements CompareService {
         return result;
     }
 
-    private DataBaseCompareDao getDBType(DataSource dataSource) throws SQLException {
+
+    @Override
+    public DBType getDBType(DataSource dataSource) throws SQLException {
         Connection connection = dataSource.getConnection();
         DatabaseMetaData metaData = connection.getMetaData();
         DbUtils.close(connection);
         if (null == metaData) {
             throw new NotSupportDBException("不支持得数据库,获取metaData为空!");
         }
-        String databaseProductName = metaData.getDatabaseProductName();
-        if (!StringUtils.hasText(databaseProductName)) {
-            throw new NotSupportDBException("不支持得数据库,获取databaseProductName为空!");
-        }
-        if (DBType.ORACLE.getType().equalsIgnoreCase(databaseProductName)) {
-            return oracleCompareDaoImpl;
-        } else {
-            throw new NotSupportDBException("不支持得数据库,目前只能使用Oracle!");
-        }
-
+        return DBType.parse(metaData.getDatabaseProductName());
     }
-
-
-    @Resource
-    @Qualifier("oracleCompareDaoImpl")
-    private DataBaseCompareDao oracleCompareDaoImpl;
 }

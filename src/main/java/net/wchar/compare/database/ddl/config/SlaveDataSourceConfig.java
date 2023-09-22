@@ -9,9 +9,12 @@ import org.springframework.context.annotation.Configuration;
 
 import javax.sql.DataSource;
 
+/**
+ * 副数据源
+ * @author Elijah
+ */
 @Configuration
 public class SlaveDataSourceConfig {
-
     @Bean
     @ConfigurationProperties(prefix = "spring.datasource.hikari.slave")
     public HikariConfig slaveHikariConfig() {
@@ -22,6 +25,4 @@ public class SlaveDataSourceConfig {
     public DataSource slaveDataSource(@Qualifier("slaveHikariConfig") HikariConfig slaveHikariConfig) {
         return new HikariDataSource(slaveHikariConfig);
     }
-
-
 }

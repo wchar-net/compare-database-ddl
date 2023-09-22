@@ -1,6 +1,7 @@
 package net.wchar.compare.database.ddl.dao.impl;
 
-import net.wchar.compare.database.ddl.dao.DataBaseCompareDao;
+import net.wchar.compare.database.ddl.dao.DataCompareDao;
+import net.wchar.compare.database.ddl.dao.OracleCompareDao;
 import net.wchar.compare.database.ddl.wrapper.ColumnDescWrapper;
 import net.wchar.compare.database.ddl.wrapper.ColumnWrapper;
 import net.wchar.compare.database.ddl.wrapper.TablePrimaryWrapper;
@@ -20,8 +21,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * oracle 比较 Dao 实现
+ * @author Elijah
+ */
 @Service("oracleCompareDaoImpl")
-public class OracleCompareDaoImpl implements DataBaseCompareDao {
+public class OracleCompareDaoImpl implements OracleCompareDao {
     @Override
     public List<String> getAllTable(DataSource dataSource, String likeRight) throws SQLException {
         String sql;
@@ -55,6 +60,7 @@ public class OracleCompareDaoImpl implements DataBaseCompareDao {
             return list;
         }, tableName.toUpperCase());
     }
+
     @Override
     public List<TablePrimaryWrapper> getTablePrimaryList(String tableName, DataSource dataSource) throws SQLException {
         String sql = " SELECT  cc.column_name as columnName, c.constraint_type as primaryType,c.constraint_name as primaryName " +
@@ -93,7 +99,7 @@ public class OracleCompareDaoImpl implements DataBaseCompareDao {
             return null;
         }
         String desc = resultObj.toString();
-        return new StringBuilder().append("COMMENT ON TABLE ").append(tableName.toUpperCase()).append(" is ").append(desc).toString();
+        return new StringBuilder().append("COMMENT ON TABLE ").append(tableName.toUpperCase()).append(" is ").append("'").append(desc).append("'").toString();
     }
 
     @Override

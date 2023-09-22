@@ -3,8 +3,13 @@ package net.wchar.compare.database.ddl.wrapper;
 import lombok.*;
 import lombok.experimental.Accessors;
 
-import java.sql.Clob;
 
+/**
+ * 列名称、类型、是否可为空、默认值
+ * dataScale带小数列: NUMBER(10,2)
+ *
+ * @author Elijah
+ */
 @Data
 @Builder
 @ToString

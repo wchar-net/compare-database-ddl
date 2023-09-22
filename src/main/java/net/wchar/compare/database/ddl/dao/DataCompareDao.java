@@ -9,7 +9,12 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
-public interface DataBaseCompareDao {
+/**
+ * 比较 Dao
+ *
+ * @author Elijah
+ */
+public interface DataCompareDao {
     /***
      * 获取所有表
      */
@@ -34,8 +39,6 @@ public interface DataBaseCompareDao {
      * 获取表中得 primary unique
      */
     List<TablePrimaryWrapper> getTablePrimaryList(String tableName, DataSource dataSource) throws SQLException;
-
-
 
     /**
      * 获取列 名称、类型 、是否可为空、默认值
