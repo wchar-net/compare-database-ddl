@@ -1,0 +1,16 @@
+server.port: 8088
+spring:
+  datasource:
+    hikari:
+      master:
+        jdbc-url: jdbc:oracle:thin:@1.1.1.1:1521:orcl
+        username: 111
+        password: 111
+        driver-class-name: oracle.jdbc.OracleDriver
+      slave:
+        jdbc-url: jdbc:oracle:thin:@2.2.2.2:1521:orcl
+        username: 222
+        password: 222
+        driver-class-name: oracle.jdbc.OracleDriver
+  application:
+    name: compare-database-ddl
